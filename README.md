@@ -42,4 +42,4 @@ These features are used to cluster customers into segments.
 
 
 ## Streamlit App Link
-[Streamlit App](<yohttps://shopper-spectrum-iqvaeenk7ouxckcs3vbnru.streamlit.app/>)
+<https://shopper-spectrum-iqvaeenk7ouxckcs3vbnru.streamlit.app/>
