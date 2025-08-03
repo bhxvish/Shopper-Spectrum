@@ -1,66 +1,75 @@
 import streamlit as st
 import pandas as pd
-import joblib
 import os
-import requests
+import gdown
 
-file_url = "https://drive.google.com/uc?id=1uGs1yBLbaFqTAmw1-uz6zztp4r17hQZP"
+# Step 1: Download item_similarity.pkl from Google Drive using gdown
+file_id = "1uGs1yBLbaFqTAmw1-uz6zztp4r17hQZP"  # Replace with your actual file ID
 file_path = "item_similarity.pkl"
+gdown_url = f"https://drive.google.com/uc?id={file_id}"
 
-# Download only if not present
 if not os.path.exists(file_path):
-    with open(file_path, "wb") as f:
-        print("Downloading large model file...")
-        response = requests.get(file_url)
-        f.write(response.content)
+    try:
+        st.info("Downloading item_similarity.pkl from Google Drive...")
+        gdown.download(gdown_url, file_path, quiet=False)
+        st.success("item_similarity.pkl downloaded successfully.")
+    except Exception as e:
+        st.error("Failed to download item_similarity.pkl.")
+        st.stop()
 
+# Step 2: Load pre-saved models and mapping file
+try:
+    item_similarity_df = pd.read_pickle(file_path)
+    product_map = pd.read_csv("product_code_to_name.csv")
+except Exception as e:
+    st.error("Failed to load required data files.")
+    st.stop()
 
-# Load pre-saved models
-item_similarity_df = pd.read_pickle('item_similarity.pkl')  # Product similarity matrix
-product_map = pd.read_csv('product_code_to_name.csv')  # Optional: mapping StockCode → Description
-
-# Streamlit UI Configuration
+# Step 3: Streamlit UI Configuration
 st.set_page_config(page_title="Product Recommender", layout="wide")
-
-# Sidebar navigation
-menu = st.sidebar.radio("Menu", ["Home", "Clustering", "Recommendation"])
+st.sidebar.title("Shopper Spectrum")
+menu = st.sidebar.radio("Navigate", ["Home", "Clustering", "Recommendation"])
 
 # Home Page
 if menu == "Home":
     st.title("Shopper Spectrum")
-    st.markdown("Welcome to the Customer Segmentation & Product Recommendation system!")
+    st.markdown("""
+        Welcome to the Customer Segmentation & Product Recommendation system.
 
-# Recommendation Page
+        This app helps you:
+        - Understand customer behavior using RFM clustering
+        - Suggest similar products based on customer purchase patterns
+    """)
+
+# Product Recommendation Page
 elif menu == "Recommendation":
-    st.markdown("### **Product Recommender**")
-    st.write("Enter Product Name")
+    st.title("Product Recommender")
+    st.markdown("Enter a product name to get similar item suggestions:")
 
-    # Input box for product name
     input_product = st.text_input("Enter Product Name", value="", key="product_input")
 
-    # Recommend button
     if st.button("Recommend"):
-        # Convert to uppercase to match dataset
-        input_product = input_product.upper()
+        input_product = input_product.upper().strip()
 
-        # Map product name to stock code (if using mapping CSV)
         if input_product in product_map['Description'].values:
             stock_code = product_map[product_map['Description'] == input_product]['StockCode'].values[0]
 
             try:
-                # Get similar products
                 similar_codes = item_similarity_df[stock_code].sort_values(ascending=False)[1:6].index
                 recommended_names = product_map[product_map['StockCode'].isin(similar_codes)]['Description'].unique()
 
-                st.markdown("#### Recommended Products:")
-                for name in recommended_names:
-                    st.write(f"- {name}")
+                if len(recommended_names) > 0:
+                    st.markdown("Recommended Products:")
+                    for name in recommended_names:
+                        st.write(f"- {name}")
+                else:
+                    st.warning("No recommendations found for this product.")
             except Exception as e:
-                st.error("Product found in list, but similarity data is missing.")
+                st.error("Similarity data missing for this product.")
         else:
             st.error("Product not found. Please check the spelling or use a known product name.")
 
-# Clustering Page (placeholder)
+# Clustering Page (Placeholder)
 elif menu == "Clustering":
-    st.markdown("### Clustering")
-    st.write("This section is under development or handles RFM-based customer segmentation.")
+    st.title("Customer Clustering (Coming Soon)")
+    st.info("This section will visualize customer segments based on RFM values.")
